@@ -61,6 +61,7 @@ _quickplot_options = {
     "zoom_factor": 1.4,
     "interactive_zoom": None,
     "fontsize": 14,
+    "layers_excluded": [],
 }
 
 
@@ -136,6 +137,7 @@ def set_quickplot_options(
     zoom_factor: Optional[float] = None,
     interactive_zoom: Optional[bool] = None,
     fontsize: Optional[int] = None,
+    layers_excluded: Optional[tuple] = None,
 ) -> None:
     """Sets plotting options for quickplot().
 
@@ -169,6 +171,8 @@ def set_quickplot_options(
         _quickplot_options["interactive_zoom"] = interactive_zoom
     if fontsize is not None:
         _quickplot_options["fontsize"] = fontsize
+    if layers_excluded is not None:
+        _quickplot_options["layers_excluded"] = layers_excluded
 
 
 def quickplot(items, **kwargs):  # noqa: C901
@@ -191,6 +195,7 @@ def quickplot(items, **kwargs):  # noqa: C901
             mousewheel/trackpad.
         interactive_zoom: Enables using mousewheel/trackpad to zoom.
         fontsize: for labels.
+        layers_excluded: list of layers (as tuples (layer # / datatype)) to exclude.
 
 
     Examples
@@ -218,6 +223,7 @@ def quickplot(items, **kwargs):  # noqa: C901
     label_aliases = quickplot_options["label_aliases"]
     new_window = quickplot_options["new_window"]
     blocking = quickplot_options["blocking"]
+    layers_excluded = quickplot_options["layers_excluded"]
 
     if new_window:
         fig, ax = plt.subplots(1)
@@ -243,7 +249,7 @@ def quickplot(items, **kwargs):  # noqa: C901
     for item in items:
         if isinstance(item, (Component, ComponentReference)):
             polygons_spec = item.get_polygons(by_spec=True, depth=None)
-            for key in sorted(polygons_spec):
+            for key in [x for x in sorted(polygons_spec) if x not in layers_excluded]:
                 polygons = polygons_spec[key]
                 layer_view = (
                     LAYER_VIEWS.get_from_tuple(key)
