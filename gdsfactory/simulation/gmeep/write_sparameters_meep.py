@@ -132,16 +132,20 @@ def write_sparameters_meep(
     run: bool = True,
     dispersive: bool = False,
     xmargin: float = 0,
-    ymargin: float = 3,
+    ymargin: float = 0,
+    zmargin: float = 0,
     xmargin_left: float = 0,
     xmargin_right: float = 0,
     ymargin_top: float = 0,
     ymargin_bot: float = 0,
+    zmargin_top: float = 0,
+    zmargin_bot: float = 0,
     decay_by: float = 1e-3,
     is_3d: bool = False,
     z: float = 0,
     plot_args: Optional[Dict] = None,
     only_return_filepath_sim_settings=False,
+    verbosity: int = 0,
     **settings,
 ) -> Dict[str, np.ndarray]:
     r"""Returns Sparameters and writes them to npz filepath.
@@ -235,6 +239,8 @@ def write_sparameters_meep(
         ymargin: top and bottom distance from component to PML.
         ymargin_top: north distance from component to PML.
         ymargin_bot: south distance from component to PML.
+        zmargin_top: +z distance from component to PML.
+        zmargin_bot: -z distance from component to PML.
         is_3d: if True runs in 3D (much slower).
         z: for 2D plot.
         plot_args: if animate or not run, customization keyword arguments passed to
@@ -282,6 +288,9 @@ def write_sparameters_meep(
     ymargin_top = ymargin_top or ymargin
     ymargin_bot = ymargin_bot or ymargin
 
+    zmargin_top = zmargin_top or zmargin
+    zmargin_bot = zmargin_bot or zmargin
+
     sim_settings = dict(
         resolution=resolution,
         port_symmetries=port_symmetries,
@@ -292,6 +301,8 @@ def write_sparameters_meep(
         port_monitor_offset=port_monitor_offset,
         port_source_offset=port_source_offset,
         dispersive=dispersive,
+        zmargin_top=zmargin_top,
+        zmargin_bot=zmargin_bot,
         ymargin_top=ymargin_top,
         ymargin_bot=ymargin_bot,
         xmargin_left=xmargin_left,
@@ -331,6 +342,15 @@ def write_sparameters_meep(
         right=xmargin_right,
     )
 
+    component_ref = component.ref()
+    ports = component_ref.ports
+    port_names = [port.name for port in list(ports.values())]
+    port_source_names = port_source_names or port_names
+    num_sims = len(port_source_names) - len(port_symmetries)
+
+    # set verbosity
+    mp.verbosity(verbosity)
+
     if not run:
         sim_dict = get_simulation(
             component=component,
@@ -338,11 +358,15 @@ def write_sparameters_meep(
             wavelength_stop=wavelength_stop,
             wavelength_points=wavelength_points,
             layer_stack=layer_stack,
+            port_source_name=port_source_names[0],
             port_margin=port_margin,
             port_monitor_offset=port_monitor_offset,
             port_source_offset=port_source_offset,
             dispersive=dispersive,
             is_3d=is_3d,
+            resolution=resolution,
+            zmargin_top=zmargin_top,
+            zmargin_bot=zmargin_bot,
             **settings,
         )
         sim = sim_dict["sim"]
@@ -364,12 +388,6 @@ def write_sparameters_meep(
             return dict(np.load(filepath))
         elif overwrite:
             filepath.unlink()
-
-    component_ref = component.ref()
-    ports = component_ref.ports
-    port_names = [port.name for port in list(ports.values())]
-    port_source_names = port_source_names or port_names
-    num_sims = len(port_source_names) - len(port_symmetries)
 
     sp = {}  # Sparameters dict
     start = time.time()
@@ -439,7 +457,9 @@ def write_sparameters_meep(
             sim.run(mp.at_every(1, animate), until_after_sources=termination)
             animate.to_mp4(30, f"{component.name}_{port_source_name}.mp4")
         else:
+            logger.info("Starting Simulation")
             sim.run(until_after_sources=termination)
+            logger.info("Finished Simulation")
 
         # Calculate mode overlaps
         # Get source monitor results

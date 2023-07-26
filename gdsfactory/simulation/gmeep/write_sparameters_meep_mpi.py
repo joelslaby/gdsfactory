@@ -183,8 +183,8 @@ def write_sparameters_meep_mpi(
         f"\tcomponent = import_gds({str(component_file)!r}, read_metadata=True)\n",
         f"\tfilepath_json = pathlib.Path({str(filepath_json)!r})\n",
         "\tlayer_stack = LayerStack.parse_raw(filepath_json.read_text())\n",
-        f"\twrite_sparameters_meep(component=component, overwrite={overwrite}, "
-        f"layer_stack=layer_stack, filepath={str(filepath)!r},",
+        f"\twrite_sparameters_meep(component=component,\n\t\toverwrite={overwrite}, "
+        f"\n\t\tlayer_stack=layer_stack, \n\t\tfilepath={str(filepath)!r},\n",
     ]
     script_lines.extend(f'\t\t{key} = parameters_dict["{key}"],\n' for key in settings)
     script_lines.append("\t)")
@@ -192,7 +192,7 @@ def write_sparameters_meep_mpi(
     script_file = tempfile.with_suffix(".py")
     with open(script_file, "w") as script_file_obj:
         script_file_obj.writelines(script_lines)
-    command = f"mpirun -np {cores} {_python()} {script_file}"
+    command = f"mpirun -np {cores} {_python()} {script_file} >> sp.out"
     logger.info(command)
     logger.info(str(filepath))
 

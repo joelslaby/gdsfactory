@@ -43,17 +43,14 @@ def get_meep_geometry_from_component(
 
     geometry = []
     layer_to_polygons = component_with_booleans.get_polygons(by_spec=True)
-
     for layer, polygons in layer_to_polygons.items():
         if layer in layer_to_thickness and layer in layer_to_material:
             height = layer_to_thickness[layer] if is_3d else mp.inf
             zmin_um = layer_to_zmin[layer] if is_3d else 0
             # center = mp.Vector3(0, 0, (zmin_um + height) / 2)
-
             for polygon in polygons:
                 vertices = [mp.Vector3(p[0], p[1], zmin_um) for p in polygon]
                 material_name = layer_to_material[layer]
-
                 if material_name:
                     material = get_material(
                         name=material_name,
@@ -65,7 +62,7 @@ def get_meep_geometry_from_component(
                         mp.Prism(
                             vertices=vertices,
                             height=height,
-                            sidewall_angle=layer_to_sidewall_angle[layer]
+                            sidewall_angle=np.pi * layer_to_sidewall_angle[layer] / 180
                             if is_3d
                             else 0,
                             material=material,

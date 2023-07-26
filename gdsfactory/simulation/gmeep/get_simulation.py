@@ -183,7 +183,9 @@ def get_simulation(
             "Did you passed the correct layer_stack?"
         )
 
-    t_core = max(layers_thickness)
+    t_core = sum(
+        layers_thickness
+    )  # This isn't exactly what we want but I think it's better
     cell_thickness = tpml + zmargin_bot + t_core + zmargin_top + tpml if is_3d else 0
 
     cell_size = mp.Vector3(
